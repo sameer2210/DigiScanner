@@ -174,6 +174,11 @@ BarcodeQA-main/
 
 ---
 
+# MONGODB_URI=mongodb://localhost:27017/barcode
+JWT_SECRET=your-secret-key
+# FRONTEND_URL=http://localhost:8081
+PORT=5000
+
 ## Notes
 
 - The backend contains all main API logic in `server.js` (routes, models, controllers).
