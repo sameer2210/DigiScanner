@@ -1,9 +1,8 @@
-# BarcodeQA: Digital Barcode Scanner & Reward System
+# DigiScanner: Digital Barcode Scanner & Reward System
 
-## Overview
+## Overview - DEV
 
-BarcodeQA is a full-stack application for managing digital barcodes, user/admin/superadmin roles, barcode scanning, reward points, and PDF/CSV export. It consists of a React Native (Expo) frontend (`barcodeapp`) and a Node.js/Express/MongoDB backend (`barcodebackend`).
-
+DigiScanner is a full-stack application for managing digital barcodes, user/admin/superadmin roles, barcode scanning, reward points, and PDF/CSV export. It consists of a React Native (Expo) frontend and a Node.js/Express/MongoDB backend .
 
 - Barcode generation (with random suffixes), scanning, and validation
 - Reward system: earn and redeem points for rewards
@@ -17,10 +16,10 @@ BarcodeQA is a full-stack application for managing digital barcodes, user/admin/
 ## File & Folder Structure
 
 ```
-BarcodeQA-main/
+DigiScanner/
 ├── DocBarcodeBlnk.txt                # Documentation or template file
 ├── README.md                         # Project documentation (this file)
-├── barcodeapp/                       # React Native (Expo) frontend
+├── frontend/                       # React Native (Expo) frontend
 │   ├── app.config.js                 # Expo app config
 │   ├── App.js                        # App entry point
 │   ├── appfake.js                    # (Possibly test/mock app)
@@ -45,13 +44,15 @@ BarcodeQA-main/
 │           ├── superadmin4y10pdf.js  # (Possibly legacy or test)
 │           ├── SuperAdminDashboard web pdf genrate.js # (Legacy/test)
 │           ├── SuperAdminDashboard.js# Superadmin dashboard UI/logic
-│           └── UserDashboard.js      # User dashboard (scan, rewards)
-├── barcodebackend/                   # Node.js/Express backend
+│           ├── UserDashboard.js      # User dashboard (scan, rewards)
+│           └── UserDashboard - Copy.js # (Backup or alternate user dashboard)
+├── backend/                   # Node.js/Express backend
 │   ├── package.json                  # Backend dependencies/scripts
 │   ├── server.js                     # Main server file (all routes)
+│   ├── socket.js                     # Socket.io helper
 │   ├── middleware/
 │   │   ├── auth.js                   # Auth middleware (JWT, allow-all for now)
-│   │   └── role.js                   # (Placeholder for role-based middleware)
+│   │   └── role.js                   # (Role-based middleware)
 │   ├── models/
 │   │   ├── Barcode.js                # Barcode schema (scanned & pre-generated)
 │   │   ├── BarcodeRanges.js          # Barcode range schema
@@ -60,7 +61,7 @@ BarcodeQA-main/
 │   │   ├── Reward.js                 # Reward schema
 │   │   └── User.js                   # User schema (roles, points, etc)
 │   └── routes/
-│       ├── auth.js                   # (Empty, logic in server.js)
+│       ├── auth.js                   # Auth routes
 │       └── generatedBarcodes.js      # Barcode generation routes
 ```
 
@@ -155,29 +156,23 @@ BarcodeQA-main/
 
 ## Technologies Used
 
-- **Frontend:** React Native (Expo), React Navigation, Paper UI, AsyncStorage
-- **Backend:** Node.js, Express, MongoDB (Mongoose), JWT, PDFKit, bwip-js, json2csv
-- **Other:** Expo Camera/Barcode Scanner, Toast notifications, FileSystem, Sharing
+- **Frontend:** React Native (Expo), React Navigation, React Native Paper, AsyncStorage, Expo Camera/Barcode Scanner, Toast notifications, FileSystem, Sharing
+- **Backend:** Node.js, Express, MongoDB (Mongoose), JWT, PDFKit, bwip-js, json2csv, socket.io
 
 ---
 
 ## How to Run
 
 1. **Backend:**
-   - `cd barcodebackend`
+   - `cd backend`
    - `npm install`
    - `node server.js`
 2. **Frontend:**
-   - `cd barcodeapp`
+   - `cd frontend`
    - `npm install`
    - `npm start` (or `expo start`)
 
 ---
-
-# MONGODB_URI=mongodb://localhost:27017/barcode
-JWT_SECRET=your-secret-key
-# FRONTEND_URL=http://localhost:8081
-PORT=5000
 
 ## Notes
 
