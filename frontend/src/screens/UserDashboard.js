@@ -16,15 +16,19 @@ import {
   Switch,
   TouchableOpacity,
   View,
+  SafeAreaView,
 } from 'react-native';
 import { Button, Card, IconButton, Text, TextInput, useTheme } from 'react-native-paper';
 import Toast from 'react-native-toast-message';
 import { io as ioClient } from 'socket.io-client';
 import { ThemeContext } from '../ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HistoryComponent from '../components/HistoryComponent';
 import { BASE_URL } from '../config/baseURL';
 
 export default function UserDashboard({ navigation }) {
+  const insets = useSafeAreaInsets();
+  const TAB_HEIGHT = 60;
   const themeContext = useContext(ThemeContext) || {};
   const { isDarkMode = false, toggleTheme = () => {} } = themeContext;
   const { colors } = useTheme();
@@ -1284,228 +1288,245 @@ export default function UserDashboard({ navigation }) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      )}
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        {renderContent()}
-      </ScrollView>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['left', 'right']}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {loading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        )}
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: TAB_HEIGHT + insets.bottom + 20 },
+          ]}
+          keyboardShouldPersistTaps="handled"
+        >
+          {renderContent()}
+        </ScrollView>
 
-      <Modal
-        visible={isPasswordModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsPasswordModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View
-            style={[
-              styles.modalContent,
-              {
-                backgroundColor: isDarkMode ? '#333' : '#fff',
-                borderColor: isDarkMode ? '#555' : '#ddd',
-              },
-            ]}
-          >
-            <Text style={[styles.modalTitle, { color: isDarkMode ? '#FFFFFF' : colors.text }]}>
-              Change Password
-            </Text>
-            <TextInput
-              label="New Password"
-              value={newPassword}
-              onChangeText={setNewPassword}
-              mode="outlined"
-              style={styles.modalInput}
-              theme={{
-                colors: { primary: colors.primary, text: isDarkMode ? '#FFFFFF' : colors.text },
-              }}
-            />
-            <TextInput
-              label="Confirm New Password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              mode="outlined"
-              style={styles.modalInput}
-              theme={{
-                colors: { primary: colors.primary, text: isDarkMode ? '#FFFFFF' : colors.text },
-              }}
-            />
-            <View style={styles.modalButtonRow}>
-              <Button
-                mode="contained"
-                onPress={handleChangePassword}
-                style={{ flex: 1, marginRight: 8 }}
-                buttonColor={colors.primary}
-                textColor="#FFF"
-                disabled={loading}
-              >
-                Change
-              </Button>
-              <Button
+        <Modal
+          visible={isPasswordModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setIsPasswordModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View
+              style={[
+                styles.modalContent,
+                {
+                  backgroundColor: isDarkMode ? '#333' : '#fff',
+                  borderColor: isDarkMode ? '#555' : '#ddd',
+                },
+              ]}
+            >
+              <Text style={[styles.modalTitle, { color: isDarkMode ? '#FFFFFF' : colors.text }]}>
+                Change Password
+              </Text>
+              <TextInput
+                label="New Password"
+                value={newPassword}
+                onChangeText={setNewPassword}
                 mode="outlined"
-                onPress={() => {
-                  setNewPassword('');
-                  setConfirmPassword('');
-                  setIsPasswordModalVisible(false);
+                style={styles.modalInput}
+                theme={{
+                  colors: { primary: colors.primary, text: isDarkMode ? '#FFFFFF' : colors.text },
                 }}
-                style={{ flex: 1, marginLeft: 8 }}
-                textColor={colors.primary}
-              >
-                Cancel
-              </Button>
+              />
+              <TextInput
+                label="Confirm New Password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                mode="outlined"
+                style={styles.modalInput}
+                theme={{
+                  colors: { primary: colors.primary, text: isDarkMode ? '#FFFFFF' : colors.text },
+                }}
+              />
+              <View style={styles.modalButtonRow}>
+                <Button
+                  mode="contained"
+                  onPress={handleChangePassword}
+                  style={{ flex: 1, marginRight: 8 }}
+                  buttonColor={colors.primary}
+                  textColor="#FFF"
+                  disabled={loading}
+                >
+                  Change
+                </Button>
+                <Button
+                  mode="outlined"
+                  onPress={() => {
+                    setNewPassword('');
+                    setConfirmPassword('');
+                    setIsPasswordModalVisible(false);
+                  }}
+                  style={{ flex: 1, marginLeft: 8 }}
+                  textColor={colors.primary}
+                >
+                  Cancel
+                </Button>
+              </View>
             </View>
           </View>
+        </Modal>
+
+        <View
+          style={[
+            styles.tabBar,
+            {
+              backgroundColor: isDarkMode ? '#333' : colors.surface,
+              paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
+              height: TAB_HEIGHT + (insets.bottom > 0 ? insets.bottom : 0),
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={[styles.tabItem, currentTab === 'home' && styles.activeTab]}
+            onPress={() => setCurrentTab('home')}
+          >
+            <MaterialIcons
+              name="home"
+              size={24}
+              color={
+                currentTab === 'home'
+                  ? isDarkMode
+                    ? '#FFD700'
+                    : colors.primary
+                  : isDarkMode
+                  ? '#FFF'
+                  : colors.text
+              }
+            />
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color:
+                    currentTab === 'home'
+                      ? isDarkMode
+                        ? '#FFD700'
+                        : colors.primary
+                      : isDarkMode
+                      ? '#FFF'
+                      : colors.text,
+                },
+              ]}
+            >
+              Home
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabItem, currentTab === 'scan' && styles.activeTab]}
+            onPress={handleScanTabPress}
+          >
+            <MaterialIcons
+              name="qr-code-scanner"
+              size={24}
+              color={
+                currentTab === 'scan'
+                  ? isDarkMode
+                    ? '#FFD700'
+                    : colors.primary
+                  : isDarkMode
+                  ? '#FFF'
+                  : colors.text
+              }
+            />
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color:
+                    currentTab === 'scan'
+                      ? isDarkMode
+                        ? '#FFD700'
+                        : colors.primary
+                      : isDarkMode
+                      ? '#FFF'
+                      : colors.text,
+                },
+              ]}
+            >
+              Scan
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabItem, currentTab === 'history' && styles.activeTab]}
+            onPress={() => setCurrentTab('history')}
+          >
+            <MaterialIcons
+              name="history"
+              size={24}
+              color={
+                currentTab === 'history'
+                  ? isDarkMode
+                    ? '#FFD700'
+                    : colors.primary
+                  : isDarkMode
+                  ? '#FFF'
+                  : colors.text
+              }
+            />
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color:
+                    currentTab === 'history'
+                      ? isDarkMode
+                        ? '#FFD700'
+                        : colors.primary
+                      : isDarkMode
+                      ? '#FFF'
+                      : colors.text,
+                },
+              ]}
+            >
+              History
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabItem, currentTab === 'barcode' && styles.activeTab]}
+            onPress={() => setCurrentTab('barcode')}
+          >
+            <MaterialIcons
+              name="qr-code"
+              size={24}
+              color={
+                currentTab === 'barcode'
+                  ? isDarkMode
+                    ? '#FFD700'
+                    : colors.primary
+                  : isDarkMode
+                  ? '#FFF'
+                  : colors.text
+              }
+            />
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color:
+                    currentTab === 'barcode'
+                      ? isDarkMode
+                        ? '#FFD700'
+                        : colors.primary
+                      : isDarkMode
+                      ? '#FFF'
+                      : colors.text,
+                },
+              ]}
+            >
+              Barcodes
+            </Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
-
-      <View style={[styles.tabBar, { backgroundColor: isDarkMode ? '#333' : colors.surface }]}>
-        <TouchableOpacity
-          style={[styles.tabItem, currentTab === 'home' && styles.activeTab]}
-          onPress={() => setCurrentTab('home')}
-        >
-          <MaterialIcons
-            name="home"
-            size={24}
-            color={
-              currentTab === 'home'
-                ? isDarkMode
-                  ? '#FFD700'
-                  : colors.primary
-                : isDarkMode
-                ? '#FFF'
-                : colors.text
-            }
-          />
-          <Text
-            style={[
-              styles.tabText,
-              {
-                color:
-                  currentTab === 'home'
-                    ? isDarkMode
-                      ? '#FFD700'
-                      : colors.primary
-                    : isDarkMode
-                    ? '#FFF'
-                    : colors.text,
-              },
-            ]}
-          >
-            Home
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabItem, currentTab === 'scan' && styles.activeTab]}
-          onPress={handleScanTabPress}
-        >
-          <MaterialIcons
-            name="qr-code-scanner"
-            size={24}
-            color={
-              currentTab === 'scan'
-                ? isDarkMode
-                  ? '#FFD700'
-                  : colors.primary
-                : isDarkMode
-                ? '#FFF'
-                : colors.text
-            }
-          />
-          <Text
-            style={[
-              styles.tabText,
-              {
-                color:
-                  currentTab === 'scan'
-                    ? isDarkMode
-                      ? '#FFD700'
-                      : colors.primary
-                    : isDarkMode
-                    ? '#FFF'
-                    : colors.text,
-              },
-            ]}
-          >
-            Scan
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tabItem, currentTab === 'history' && styles.activeTab]}
-          onPress={() => setCurrentTab('history')}
-        >
-          <MaterialIcons
-            name="history"
-            size={24}
-            color={
-              currentTab === 'history'
-                ? isDarkMode
-                  ? '#FFD700'
-                  : colors.primary
-                : isDarkMode
-                ? '#FFF'
-                : colors.text
-            }
-          />
-          <Text
-            style={[
-              styles.tabText,
-              {
-                color:
-                  currentTab === 'history'
-                    ? isDarkMode
-                      ? '#FFD700'
-                      : colors.primary
-                    : isDarkMode
-                    ? '#FFF'
-                    : colors.text,
-              },
-            ]}
-          >
-            History
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tabItem, currentTab === 'barcode' && styles.activeTab]}
-          onPress={() => setCurrentTab('barcode')}
-        >
-          <MaterialIcons
-            name="qr-code"
-            size={24}
-            color={
-              currentTab === 'barcode'
-                ? isDarkMode
-                  ? '#FFD700'
-                  : colors.primary
-                : isDarkMode
-                ? '#FFF'
-                : colors.text
-            }
-          />
-          <Text
-            style={[
-              styles.tabText,
-              {
-                color:
-                  currentTab === 'barcode'
-                    ? isDarkMode
-                      ? '#FFD700'
-                      : colors.primary
-                    : isDarkMode
-                    ? '#FFF'
-                    : colors.text,
-              },
-            ]}
-          >
-            Barcodes
-          </Text>
-        </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -1669,7 +1690,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
-    elevation: 12, // Higher elevation
+    elevation: 12,
     backgroundColor: '#fff',
   },
   tabItem: {

@@ -3936,6 +3936,10 @@
 //   },
 // });
 
+
+
+
+
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
@@ -3957,15 +3961,19 @@ import {
   Text,
   TouchableOpacity,
   View,
+  SafeAreaView,
 } from 'react-native';
 import { Badge, Button, Card, TextInput, useTheme } from 'react-native-paper';
 import Toast from 'react-native-toast-message';
 import { io as ioClient } from 'socket.io-client';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ThemeToggle from '../components/ThemeToggle';
 import { BASE_URL } from '../config/baseURL';
 import { ThemeContext } from '../ThemeContext';
 const isWeb = Platform.OS === 'web';
 export default function SuperAdminDashboard({ navigation }) {
+  const insets = useSafeAreaInsets();
+  const TAB_HEIGHT = 60;
   const { colors } = useTheme();
   const { isDarkMode } = useContext(ThemeContext);
   const [notifications, setNotifications] = useState([]);
@@ -5854,18 +5862,33 @@ export default function SuperAdminDashboard({ navigation }) {
     return content;
   };
   return (
-    <View
-      style={[styles.container, { backgroundColor: isDarkMode ? '#212121' : colors.background }]}
-    >
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      )}
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-        {renderContent()}
-      </ScrollView>
-      <View style={[styles.tabBar, { backgroundColor: isDarkMode ? '#333' : colors.surface }]}>
+    <SafeAreaView style={{ flex: 1 }} edges={['left', 'right']}>
+      <View
+        style={[styles.container, { backgroundColor: isDarkMode ? '#212121' : colors.background }]}
+      >
+        {loading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        )}
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: TAB_HEIGHT + insets.bottom + 20 },
+          ]}
+        >
+          {renderContent()}
+        </ScrollView>
+        <View
+          style={[
+            styles.tabBar,
+            {
+              backgroundColor: isDarkMode ? '#222' : colors.surface,
+              paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
+              height: TAB_HEIGHT + (insets.bottom > 0 ? insets.bottom : 10),
+            },
+          ]}
+        >
         <TouchableOpacity
           style={[styles.tabItem, currentTab === 'home' && styles.activeTab]}
           onPress={() => setCurrentTab('home')}
@@ -6167,13 +6190,13 @@ export default function SuperAdminDashboard({ navigation }) {
           />
         </View>
       </Modal>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContainer: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 120 },
+  scrollContent: { padding: 16 },
   modalContainer: { flex: 1, padding: 16 },
   modalHeader: {
     flexDirection: 'row',

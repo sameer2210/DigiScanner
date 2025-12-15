@@ -81,12 +81,12 @@ const withCleartextTraffic = require('./withCleartextTraffic');
 module.exports = {
   expo: {
     // Development build
-    // name: 'DigiScanner-dev',
-    // slug: 'DigiScanner-dev',
+    name: 'D-DigiScanner',
+    slug: 'D-DigiScanner',
 
     // production
-    name: 'DigiScanner',
-    slug: 'DigiScanner',
+    // name: 'DigiScanner',
+    // slug: 'DigiScanner',
 
     version: '1.0.3',
     orientation: 'portrait',
@@ -101,8 +101,8 @@ module.exports = {
 
     updates: {
       fallbackToCacheTimeout: 0,
-      enabled: true,
-      url: 'https://u.expo.dev/6d4e01d5-3d69-479d-b858-10b64cec0306',
+      // enabled: true,
+      // url: 'https://u.expo.dev/6d4e01d5-3d69-479d-b858-10b64cec0306',
     },
 
     assetBundlePatterns: ['**/*'],
@@ -122,8 +122,8 @@ module.exports = {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#ffffff',
       },
-      // package: 'com.example.DigiScannerdev',
-      package: 'com.optico.digiscanner',
+      package: 'com.example.DigiScanner',
+      // package: 'com.optico.digiscanner',
       versionCode: 5,
       permissions: [
         'android.permission.CAMERA',
@@ -139,7 +139,7 @@ module.exports = {
             compileSdkVersion: 35,
             targetSdkVersion: 35,
             buildToolsVersion: '35.0.0',
-            enableProguardInReleaseBuilds: true,
+            // enableProguardInReleaseBuilds: true,
           },
         },
       ],
@@ -150,17 +150,17 @@ module.exports = {
     web: {
       favicon: './assets/favicon.png',
       bundler: 'metro',
-      output: 'static',
+      // output: 'static',
     },
 
     extra: {
       eas: {
         //         //development id
-        // projectId: 'e69934f5-43ad-4aae-98c7-066ac5bc5c4f',
+        projectId: '048fdf1c-9e3c-40a3-b6f2-64f40b55a817',
         //         //main production id
         // projectId: 'f2fac71f-4a9a-4f27-9860-37905e39a003',
         // expo_opticosolutions
-        projectId: '6d4e01d5-3d69-479d-b858-10b64cec0306',
+        // projectId: '6d4e01d5-3d69-479d-b858-10b64cec0306',
       },
     },
 
