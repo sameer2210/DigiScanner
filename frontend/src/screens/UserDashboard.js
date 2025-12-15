@@ -134,6 +134,10 @@ export default function UserDashboard({ navigation }) {
           reconnectionDelay: 2000,
         });
 
+        socket.on('connect', () => {
+          console.log('User socket connected');
+        });
+
         socket.on('connect_error', err => {
           console.warn('Socket connection error:', err.message);
         });
@@ -141,28 +145,31 @@ export default function UserDashboard({ navigation }) {
           console.log('Socket disconnected, attempting reconnect…');
         });
         socket.emit('register', { role: 'user', userId: user.id.toString() });
+        console.log('User registered with socket:', user.id);
 
-        socket.on('user:selfUpdated', data => {
-          setUser(prev => ({ ...prev, ...data }));
-          Toast.show({ type: 'info', text1: 'Your profile updated' });
-          setUnreadCount(prev => prev + 1);
-        });
-
-        socket.on('points:updated', data => {
-          if (data?.userId?.toString() === user.id.toString()) {
-            setUser(prev => ({ ...prev, points: data.points }));
+        // Handle barcode scan
+        socket.on('barcode:scanned', data => {
+          console.log('User received barcode:scanned:', data);
+          if (data.userId === user.id || data.userId === user.id.toString()) {
+            setLastAddedPoints(data.pointsEarned || data.addedPoints || 0);
+            setUser(prev => ({ ...prev, points: data.newPoints || data.points }));
+            setUnreadCount(prev => prev + 1);
             Toast.show({
               type: 'success',
-              text1: 'Points updated',
-              text2: `New total: ${data.points}`,
+              text1: 'Barcode scanned successfully',
+              text2: `You earned ${data.pointsEarned || data.addedPoints} points!`,
             });
-            setUnreadCount(prev => prev + 1);
+            fetchUserProfile(user.id);
+            fetchUserBarcodes(user.id);
+            fetchUserHistory();
           }
         });
 
         socket.on('barcodeScanned', data => {
-          if (data.userId === user.id) {
+          console.log('User received barcodeScanned:', data);
+          if (data.userId === user.id || data.userId === user.id.toString()) {
             setLastAddedPoints(data.addedPoints || 0);
+            setUser(prev => ({ ...prev, points: data.points || prev.points }));
             setUnreadCount(prev => prev + 1);
             Toast.show({
               type: 'success',
@@ -171,6 +178,41 @@ export default function UserDashboard({ navigation }) {
             });
             fetchUserProfile(user.id);
             fetchUserBarcodes(user.id);
+            fetchUserHistory();
+          }
+        });
+
+        // Handle user updates from admin
+        socket.on('user:updated', data => {
+          console.log('User received user:updated:', data);
+          if (data._id === user.id || data.id === user.id || data._id === user.id.toString() || data.id === user.id.toString()) {
+            setUser(prev => ({ ...prev, ...data, points: data.points }));
+            Toast.show({ type: 'info', text1: 'Your profile updated' });
+            setUnreadCount(prev => prev + 1);
+            fetchUserProfile(user.id);
+            fetchUserHistory();
+          }
+        });
+
+        socket.on('user:selfUpdated', data => {
+          console.log('User received user:selfUpdated:', data);
+          setUser(prev => ({ ...prev, ...data }));
+          Toast.show({ type: 'info', text1: 'Your profile updated' });
+          setUnreadCount(prev => prev + 1);
+        });
+
+        // Handle points updates specifically
+        socket.on('points:updated', data => {
+          console.log('User received points:updated:', data);
+          if (data?.userId?.toString() === user.id.toString() || data?.userId === user.id) {
+            setUser(prev => ({ ...prev, points: data.newPoints || data.points }));
+            Toast.show({
+              type: 'success',
+              text1: 'Points updated',
+              text2: `New total: ${data.newPoints || data.points}`,
+            });
+            setUnreadCount(prev => prev + 1);
+            fetchUserProfile(user.id);
             fetchUserHistory();
           }
         });
@@ -200,6 +242,7 @@ export default function UserDashboard({ navigation }) {
         });
 
         socket.on('userHistoryUpdated', entry => {
+          console.log('User received userHistoryUpdated:', entry);
           setHistoryItems(prev => {
             const newHistory = [entry, ...prev].sort(
               (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
@@ -217,6 +260,7 @@ export default function UserDashboard({ navigation }) {
           });
           Toast.show({ type: 'info', text1: 'History updated' });
           setUnreadCount(prev => prev + 1);
+          fetchUserProfile(user.id);
         });
 
         socket.on('notification:updated', payload => {
@@ -228,11 +272,12 @@ export default function UserDashboard({ navigation }) {
         });
 
         socket.on('history:updated', payload => {
+          console.log('User received history:updated:', payload);
           if (payload?.userId?.toString() === user.id.toString()) {
-            setHistoryItems(prev => [...(payload.items || []), ...prev]);
             Toast.show({ type: 'info', text1: 'New history event' });
             setUnreadCount(prev => prev + 1);
             fetchUserHistory();
+            fetchUserProfile(user.id);
           }
         });
       } catch (err) {
@@ -243,9 +288,12 @@ export default function UserDashboard({ navigation }) {
     setupSocket();
 
     return () => {
-      if (socket) socket.disconnect();
+      if (socket) {
+        console.log('Disconnecting user socket');
+        socket.disconnect();
+      }
     };
-  }, [user, fetchUserHistory]);
+  }, [user?.id, fetchUserProfile, fetchUserBarcodes, fetchUserHistory, fetchNotifications, fetchRedemptions]);
 
   // Camera Animation
   useEffect(() => {
@@ -1302,75 +1350,75 @@ export default function UserDashboard({ navigation }) {
           ]}
           keyboardShouldPersistTaps="handled"
         >
-          {renderContent()}
-        </ScrollView>
+        {renderContent()}
+      </ScrollView>
 
-        <Modal
-          visible={isPasswordModalVisible}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setIsPasswordModalVisible(false)}
-        >
-          <View style={styles.modalContainer}>
-            <View
-              style={[
-                styles.modalContent,
-                {
-                  backgroundColor: isDarkMode ? '#333' : '#fff',
-                  borderColor: isDarkMode ? '#555' : '#ddd',
-                },
-              ]}
-            >
-              <Text style={[styles.modalTitle, { color: isDarkMode ? '#FFFFFF' : colors.text }]}>
-                Change Password
-              </Text>
-              <TextInput
-                label="New Password"
-                value={newPassword}
-                onChangeText={setNewPassword}
+      <Modal
+        visible={isPasswordModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsPasswordModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: isDarkMode ? '#333' : '#fff',
+                borderColor: isDarkMode ? '#555' : '#ddd',
+              },
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: isDarkMode ? '#FFFFFF' : colors.text }]}>
+              Change Password
+            </Text>
+            <TextInput
+              label="New Password"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              mode="outlined"
+              style={styles.modalInput}
+              theme={{
+                colors: { primary: colors.primary, text: isDarkMode ? '#FFFFFF' : colors.text },
+              }}
+            />
+            <TextInput
+              label="Confirm New Password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              mode="outlined"
+              style={styles.modalInput}
+              theme={{
+                colors: { primary: colors.primary, text: isDarkMode ? '#FFFFFF' : colors.text },
+              }}
+            />
+            <View style={styles.modalButtonRow}>
+              <Button
+                mode="contained"
+                onPress={handleChangePassword}
+                style={{ flex: 1, marginRight: 8 }}
+                buttonColor={colors.primary}
+                textColor="#FFF"
+                disabled={loading}
+              >
+                Change
+              </Button>
+              <Button
                 mode="outlined"
-                style={styles.modalInput}
-                theme={{
-                  colors: { primary: colors.primary, text: isDarkMode ? '#FFFFFF' : colors.text },
+                onPress={() => {
+                  setNewPassword('');
+                  setConfirmPassword('');
+                  setIsPasswordModalVisible(false);
                 }}
-              />
-              <TextInput
-                label="Confirm New Password"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                mode="outlined"
-                style={styles.modalInput}
-                theme={{
-                  colors: { primary: colors.primary, text: isDarkMode ? '#FFFFFF' : colors.text },
-                }}
-              />
-              <View style={styles.modalButtonRow}>
-                <Button
-                  mode="contained"
-                  onPress={handleChangePassword}
-                  style={{ flex: 1, marginRight: 8 }}
-                  buttonColor={colors.primary}
-                  textColor="#FFF"
-                  disabled={loading}
-                >
-                  Change
-                </Button>
-                <Button
-                  mode="outlined"
-                  onPress={() => {
-                    setNewPassword('');
-                    setConfirmPassword('');
-                    setIsPasswordModalVisible(false);
-                  }}
-                  style={{ flex: 1, marginLeft: 8 }}
-                  textColor={colors.primary}
-                >
-                  Cancel
-                </Button>
-              </View>
+                style={{ flex: 1, marginLeft: 8 }}
+                textColor={colors.primary}
+              >
+                Cancel
+              </Button>
             </View>
           </View>
-        </Modal>
+        </View>
+      </Modal>
 
         <View
           style={[
@@ -1382,148 +1430,148 @@ export default function UserDashboard({ navigation }) {
             },
           ]}
         >
-          <TouchableOpacity
-            style={[styles.tabItem, currentTab === 'home' && styles.activeTab]}
-            onPress={() => setCurrentTab('home')}
+        <TouchableOpacity
+          style={[styles.tabItem, currentTab === 'home' && styles.activeTab]}
+          onPress={() => setCurrentTab('home')}
+        >
+          <MaterialIcons
+            name="home"
+            size={24}
+            color={
+              currentTab === 'home'
+                ? isDarkMode
+                  ? '#FFD700'
+                  : colors.primary
+                : isDarkMode
+                ? '#FFF'
+                : colors.text
+            }
+          />
+          <Text
+            style={[
+              styles.tabText,
+              {
+                color:
+                  currentTab === 'home'
+                    ? isDarkMode
+                      ? '#FFD700'
+                      : colors.primary
+                    : isDarkMode
+                    ? '#FFF'
+                    : colors.text,
+              },
+            ]}
           >
-            <MaterialIcons
-              name="home"
-              size={24}
-              color={
-                currentTab === 'home'
-                  ? isDarkMode
-                    ? '#FFD700'
-                    : colors.primary
-                  : isDarkMode
-                  ? '#FFF'
-                  : colors.text
-              }
-            />
-            <Text
-              style={[
-                styles.tabText,
-                {
-                  color:
-                    currentTab === 'home'
-                      ? isDarkMode
-                        ? '#FFD700'
-                        : colors.primary
-                      : isDarkMode
-                      ? '#FFF'
-                      : colors.text,
-                },
-              ]}
-            >
-              Home
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabItem, currentTab === 'scan' && styles.activeTab]}
-            onPress={handleScanTabPress}
+            Home
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabItem, currentTab === 'scan' && styles.activeTab]}
+          onPress={handleScanTabPress}
+        >
+          <MaterialIcons
+            name="qr-code-scanner"
+            size={24}
+            color={
+              currentTab === 'scan'
+                ? isDarkMode
+                  ? '#FFD700'
+                  : colors.primary
+                : isDarkMode
+                ? '#FFF'
+                : colors.text
+            }
+          />
+          <Text
+            style={[
+              styles.tabText,
+              {
+                color:
+                  currentTab === 'scan'
+                    ? isDarkMode
+                      ? '#FFD700'
+                      : colors.primary
+                    : isDarkMode
+                    ? '#FFF'
+                    : colors.text,
+              },
+            ]}
           >
-            <MaterialIcons
-              name="qr-code-scanner"
-              size={24}
-              color={
-                currentTab === 'scan'
-                  ? isDarkMode
-                    ? '#FFD700'
-                    : colors.primary
-                  : isDarkMode
-                  ? '#FFF'
-                  : colors.text
-              }
-            />
-            <Text
-              style={[
-                styles.tabText,
-                {
-                  color:
-                    currentTab === 'scan'
-                      ? isDarkMode
-                        ? '#FFD700'
-                        : colors.primary
-                      : isDarkMode
-                      ? '#FFF'
-                      : colors.text,
-                },
-              ]}
-            >
-              Scan
-            </Text>
-          </TouchableOpacity>
+            Scan
+          </Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.tabItem, currentTab === 'history' && styles.activeTab]}
-            onPress={() => setCurrentTab('history')}
+        <TouchableOpacity
+          style={[styles.tabItem, currentTab === 'history' && styles.activeTab]}
+          onPress={() => setCurrentTab('history')}
+        >
+          <MaterialIcons
+            name="history"
+            size={24}
+            color={
+              currentTab === 'history'
+                ? isDarkMode
+                  ? '#FFD700'
+                  : colors.primary
+                : isDarkMode
+                ? '#FFF'
+                : colors.text
+            }
+          />
+          <Text
+            style={[
+              styles.tabText,
+              {
+                color:
+                  currentTab === 'history'
+                    ? isDarkMode
+                      ? '#FFD700'
+                      : colors.primary
+                    : isDarkMode
+                    ? '#FFF'
+                    : colors.text,
+              },
+            ]}
           >
-            <MaterialIcons
-              name="history"
-              size={24}
-              color={
-                currentTab === 'history'
-                  ? isDarkMode
-                    ? '#FFD700'
-                    : colors.primary
-                  : isDarkMode
-                  ? '#FFF'
-                  : colors.text
-              }
-            />
-            <Text
-              style={[
-                styles.tabText,
-                {
-                  color:
-                    currentTab === 'history'
-                      ? isDarkMode
-                        ? '#FFD700'
-                        : colors.primary
-                      : isDarkMode
-                      ? '#FFF'
-                      : colors.text,
-                },
-              ]}
-            >
-              History
-            </Text>
-          </TouchableOpacity>
+            History
+          </Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.tabItem, currentTab === 'barcode' && styles.activeTab]}
-            onPress={() => setCurrentTab('barcode')}
+        <TouchableOpacity
+          style={[styles.tabItem, currentTab === 'barcode' && styles.activeTab]}
+          onPress={() => setCurrentTab('barcode')}
+        >
+          <MaterialIcons
+            name="qr-code"
+            size={24}
+            color={
+              currentTab === 'barcode'
+                ? isDarkMode
+                  ? '#FFD700'
+                  : colors.primary
+                : isDarkMode
+                ? '#FFF'
+                : colors.text
+            }
+          />
+          <Text
+            style={[
+              styles.tabText,
+              {
+                color:
+                  currentTab === 'barcode'
+                    ? isDarkMode
+                      ? '#FFD700'
+                      : colors.primary
+                    : isDarkMode
+                    ? '#FFF'
+                    : colors.text,
+              },
+            ]}
           >
-            <MaterialIcons
-              name="qr-code"
-              size={24}
-              color={
-                currentTab === 'barcode'
-                  ? isDarkMode
-                    ? '#FFD700'
-                    : colors.primary
-                  : isDarkMode
-                  ? '#FFF'
-                  : colors.text
-              }
-            />
-            <Text
-              style={[
-                styles.tabText,
-                {
-                  color:
-                    currentTab === 'barcode'
-                      ? isDarkMode
-                        ? '#FFD700'
-                        : colors.primary
-                      : isDarkMode
-                      ? '#FFF'
-                      : colors.text,
-                },
-              ]}
-            >
-              Barcodes
-            </Text>
-          </TouchableOpacity>
+            Barcodes
+          </Text>
+        </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>

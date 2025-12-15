@@ -3361,7 +3361,6 @@
 // });
 
 
-
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
@@ -3884,6 +3883,11 @@ export default function AdminDashboard({ navigation }) {
           reconnectionAttempts: 5,
           reconnectionDelay: 2000,
         });
+
+        socket.on('connect', () => {
+          console.log('Admin socket connected');
+        });
+
         socket.on('connect_error', err => {
           console.warn('Socket connection error:', err.message);
         });
@@ -3896,11 +3900,81 @@ export default function AdminDashboard({ navigation }) {
         const adminId = parsed?._id || parsed?.id;
         if (adminId) {
           socket.emit('register', { role: 'admin', userId: adminId.toString() });
+          console.log('Admin registered with socket:', adminId);
         }
 
+        // Handle barcode scan events
+        socket.on('barcode:scanned', data => {
+          console.log('Admin received barcode:scanned:', data);
+          setUsers(prev => prev.map(u => {
+            if (u._id === data.userId || u.id === data.userId) {
+              return {
+                ...u,
+                points: data.newPoints || data.points,
+                scanHistory: data.scanHistory || u.scanHistory
+              };
+            }
+            return u;
+          }));
+
+          setBarcodes(prev => prev.map(b => {
+            if (b._id === data.barcodeId || b.id === data.barcodeId) {
+              return {
+                ...b,
+                isScanned: true,
+                scannedBy: data.userId,
+                scannedAt: data.scannedAt
+              };
+            }
+            return b;
+          }));
+
+          Toast.show({
+            type: 'success',
+            text1: 'Barcode Scanned',
+            text2: `User earned ${data.pointsEarned || data.addedPoints} points`
+          });
+          setUnreadAdmin(prev => prev + 1);
+          fetchData();
+        });
+
+        socket.on('barcodeScanned', data => {
+          console.log('Admin received barcodeScanned:', data);
+          setUsers(prev => prev.map(u => {
+            if (u._id === data.userId || u.id === data.userId) {
+              return { ...u, points: data.points || u.points };
+            }
+            return u;
+          }));
+          Toast.show({ type: 'success', text1: 'Barcode scanned' });
+          setUnreadAdmin(prev => prev + 1);
+          fetchData();
+        });
+
+        // Handle user updates
         socket.on('user:updated', data => {
-          setUsers(prev => prev.map(u => (u.id === data.id ? { ...u, ...data } : u)));
+          console.log('Admin received user:updated:', data);
+          setUsers(prev => prev.map(u => {
+            if (u._id === data._id || u.id === data.id || u._id === data.id || u.id === data._id) {
+              return { ...u, ...data, points: data.points };
+            }
+            return u;
+          }));
           Toast.show({ type: 'info', text1: 'User updated' });
+          setUnreadAdmin(prev => prev + 1);
+          fetchData();
+        });
+
+        // Handle points updates specifically
+        socket.on('points:updated', data => {
+          console.log('Admin received points:updated:', data);
+          setUsers(prev => prev.map(u => {
+            if (u._id === data.userId || u.id === data.userId) {
+              return { ...u, points: data.newPoints || data.points };
+            }
+            return u;
+          }));
+          Toast.show({ type: 'success', text1: 'Points updated' });
           setUnreadAdmin(prev => prev + 1);
         });
 
